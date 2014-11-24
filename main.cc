@@ -68,8 +68,14 @@ int main( int argc, char* argv[] ) {
                                evc_file,
                                tmp_buckets,
                                mat_file );
+    graph.cluster_stats( edges_file, cluster_mem_file );
 */
 
     Graph graph( 2588990 );
-    graph.cluster_stats( edges_file, cluster_mem_file );
+    double Q = graph.modularity( edges_file, 
+                                 degree_dist_file, 
+                                 cluster_mem_file );
+
+    fprintf(stdout,"modularity: %14.7e\n", Q );
+    
 }

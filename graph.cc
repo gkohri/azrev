@@ -311,6 +311,104 @@ void Graph::cluster_stats( const string &edge_filename,
 
 }
 
+double Graph::modularity( const string &edges_filename,
+                          const string &dc_filename,
+                          const string &membership_filename ) {
+
+    // Read in the membership
+    fprintf(stderr,"Reading in memberships...\n");
+
+    vector<int> membership( _num_verts );
+
+    size_t vertex;
+    size_t community;
+
+    FILE *memb_fp = fopen_csv( membership_filename, "r" );
+
+    while( 1 ) {
+        scan_pos_int( memb_fp, vertex );
+        scan_pos_int( memb_fp, community );
+
+        if ( community == EOF ) break;
+
+        membership[vertex] = community;
+    }
+
+    fclose( memb_fp );
+
+    // Load node degrees
+
+    fprintf(stderr,"Loading node derees...\n");
+
+    vector<int> degrees( _num_verts );
+
+    FILE *deg_fp = fopen_csv( dc_filename, "r" );
+
+    size_t degree;
+
+    while( 1 ) {
+
+        scan_pos_int( deg_fp, vertex );
+        scan_pos_int( deg_fp, degree );
+
+        if ( degree == EOF ) break;
+
+        degrees[vertex] = degree;
+    }
+
+    fclose( deg_fp );
+
+    // Process the edges
+
+    fprintf(stderr,"Processing edges ...\n");
+
+
+    FILE *edges_fp = fopen_csv( edges_filename, "r" );
+
+    size_t source;
+    size_t target;
+    size_t weight;
+    long Ql = 0;
+    unordered_map<size_t,long> c_degree;
+    long total_weight = 0;
+    while( 1 ) {
+
+        scan_pos_int( edges_fp, source );
+        scan_pos_int( edges_fp, target );
+        scan_pos_int( edges_fp, weight );
+
+        if ( weight == EOF ) break;
+
+/*
+        if ( membership[source] == 78363 ||
+             membership[target] == 78363    ) continue;
+*/
+
+        Ql += ( membership[source] == membership[target] ? weight : 0 );
+        c_degree[membership[source]] += weight;
+        c_degree[membership[target]] += weight;
+        total_weight += weight;
+
+    }
+
+    fclose( edges_fp );
+
+    fprintf(stderr,"Processing degrees...\n");
+    long Qd = 0;
+    for ( pair<size_t,long> dc : c_degree ) {
+        Qd += dc.second*dc.second;
+    }
+
+    double inv_norm = 1.0/static_cast<double>( total_weight );
+
+    double Q = static_cast<double>(Ql)*inv_norm -
+                            static_cast<double>(Qd)*inv_norm*inv_norm*0.25;
+
+
+    return Q;
+
+}
+
 
 
 
@@ -338,7 +436,7 @@ void Graph::map_graph( const string &edge_filename,
     unordered_map<size_t,size_t> bucket_map;
 
     // Read in the node degrees
-    fprintf(stderr,"Reading in node derees...\n");
+    fprintf(stderr,"Reading in node degrees...\n");
 
     size_t vertex;
     size_t degree;

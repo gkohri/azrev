@@ -25,8 +25,9 @@ class Graph {
     void cluster_stats( const std::string &edge_filename, 
                         const std::string &output_filename );
 
-
-
+    double modularity( const std::string &edge_filename,
+                       const std::string &dc_filename,
+                       const std::string &membership_filename );
 
     void convert_list_to_mat( const std::string &edge_filename,
                               const std::string &dc_filename,
