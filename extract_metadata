@@ -1,0 +1,49 @@
+#!/bin/bash
+
+#ensure the script is called with the correct number of parameters
+if [ $# -lt 2 ] || [ $# -gt 3 ]
+then
+    echo "Usage: $0 <input file> <output file> [<delete unknown>]"
+    exit 1
+fi
+
+
+#The input is a compressed file of Amazon review data from the SNAP website
+INPUT=$1
+
+if [ ! -f $INPUT ]
+then
+    echo "File not found: $INPUT"
+    exit 1
+fi
+
+#The output is a file containing the meta data information in the CSV format
+#with a single tab separating the fields
+OUTPUT=$2
+
+#Uncompressed the file, extract the fields of interest and rearrange the 
+#output into columns.
+
+DELETE_UNKOWN=
+if [ $# -eq 3 ]
+then
+DELETE_UNKOWN=1
+fi
+
+if [ $DELETE_UNKOWN ]
+then
+
+    zcat $INPUT |\
+        grep "product/productId\|product/title\|review/userId\|review/profileName\|review/helpfulness\|review/score\|review/time" |\
+        awk -F": " 'BEGIN{OFS="\t";print "productID","title","reviewerID","screenName","helpfulness","score\ttime";} {st=index($0,": ");if(NR % 7 == 0){printf "%s\n",substr($0,st+2)}else if(NR %7 == 2 || NR %7 == 4){printf "\"%s\"\t",substr($0,st+2)}else{printf "%s\t",substr($0,st+2)}}' > $OUTPUT
+
+else
+
+    zcat $INPUT |\
+        grep "product/productId\|product/title\|review/userId\|review/profileName\|review/helpfulness\|review/score\|review/time" |\
+        awk -F": " 'BEGIN{OFS="\t";print "productID","title","reviewerID","screenName","helpfulness","score\ttime";} {st=index($0,": ");if(NR % 7 == 0){printf "%s\n",substr($0,st+2)}else if(NR %7 == 2 || NR %7 == 4){printf "\"%s\"\t",substr($0,st+2)}else{printf "%s\t",substr($0,st+2)}}' |\
+        awk 'BEGIN{FS="\t";OFS="\t"}{if ( $3 != "unknown" ){print $1,$2,$3,$4,$5,$6,$7;}}' > $OUTPUT
+
+fi
+
+exit 0
